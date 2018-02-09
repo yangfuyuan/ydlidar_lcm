@@ -1,0 +1,22 @@
+struct lidar_laser_t
+{
+    int64_t utime;
+
+
+    int32_t nranges;
+    float ranges[nranges];      // [m]
+    //float thetas[nranges];      // [rad]
+    //int64_t times[nranges];     // [usec]
+    float  angle_min;
+    float  angle_max;
+    float  angle_increment;
+    float  time_increment;
+    float  scan_time;
+
+    float  range_min;
+    float  range_max;
+
+
+    int32_t nintensities;
+    float intensities[nintensities];
+}

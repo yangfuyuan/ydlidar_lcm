@@ -27,9 +27,12 @@ include_directories(
 )
 
 add_executable(ydlidar_lcm src/ydlidar_lcm.cpp  ${SDK_SRC})
+add_executable(ydlidar_client src/ydlidar_client.cpp  ${SDK_SRC})
 
 target_link_libraries(ydlidar_lcm
    ${catkin_LIBRARIES}  ${LCM_LIBRARIES} -lpthread
  )
 
-
+target_link_libraries(ydlidar_client
+   ${catkin_LIBRARIES}  ${LCM_LIBRARIES} -lpthread
+ )

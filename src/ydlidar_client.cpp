@@ -12,6 +12,7 @@
 #include <lcm/lcm-cpp.hpp>
 #include "lcmtypes/lidar_laser_t.hpp"
 #include <cmath>
+using namespace lcmtypes;
 
 #define RAD2DEG(x) ((x)*180./M_PI)
 

@@ -1,3 +1,5 @@
+package lcmtypes;
+
 struct lidar_laser_t
 {
     int64_t utime;

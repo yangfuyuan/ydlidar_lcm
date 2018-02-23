@@ -21,6 +21,7 @@ FILE(GLOB SDK_SRC
 include_directories(
   ${LCM_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}
+  ${PROJECT_SOURCE_DIR}/lcmtypes;
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/sdk/include
   ${PROJECT_SOURCE_DIR}/sdk/src

@@ -21,7 +21,7 @@ How to run YDLIDAR LCM package
 ------------------------------------------------------------
 ./ydlidar_lcm
 
-./ydlidar_lcm_client
+./ydlidar_client
 
 You should see YDLIDAR's scan result in the console
 	

@@ -36,6 +36,7 @@
 
 using namespace ydlidar;
 using namespace impl;
+using namespace lcmtypes;
 
 static int nodes_count = 720;
 static float each_angle = 0.5;
@@ -242,11 +243,8 @@ static void Stop(int signo)
 {   
     running = false;
     signal(signo, SIG_DFL);
-    YDlidarDriver::singleton()->disconnect();
     printf("[YDLIDAR INFO] Now YDLIDAR is stopping .......\n");
-    YDlidarDriver::done();
-    slcm.reset();
-    exit(0);
+  
      
 } 
 
@@ -392,7 +390,7 @@ int main(int argc, char * argv[]) {
     double scan_duration;
     running = true;
 
-    while (0== slcm->handle()&& running) {
+    while (running) {
         try{
             node_info nodes[nodes_count];
             size_t   count = _countof(nodes);

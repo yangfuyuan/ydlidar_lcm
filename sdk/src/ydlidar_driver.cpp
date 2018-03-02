@@ -183,7 +183,6 @@ namespace ydlidar{
 		size_t r;
         while (size) {
             {
-                ScopedLocker lock(serial_lock);
                 r = _serial->write(data, size);
             }
 
@@ -202,7 +201,6 @@ namespace ydlidar{
         size_t r;
         while (size) {
             {
-                ScopedLocker lock(serial_lock);
                 r = _serial->read(data, size);
             }
             if (r == 0)

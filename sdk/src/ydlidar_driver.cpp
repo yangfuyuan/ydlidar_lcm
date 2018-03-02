@@ -180,15 +180,40 @@ namespace ydlidar{
 		if (data == NULL || size ==0) {
 			return RESULT_FAIL;
 		}
-		return _serial->write(data, size);
+		size_t r;
+        while (size) {
+            {
+                ScopedLocker lock(serial_lock);
+                r = _serial->write(data, size);
+            }
+
+            if (r < 1)
+                return RESULT_FAIL;
+            size -= r;
+            data += r;
+        }
+        return RESULT_OK;
 	}
 
     result_t YDlidarDriver::getData(uint8_t * data, size_t size) {
 		if (!isConnected) {
 			return RESULT_FAIL;
 		}
-        result_t ans = _serial->read(data, size);
-		return ans;
+        size_t r;
+        while (size) {
+            {
+                ScopedLocker lock(serial_lock);
+                r = _serial->read(data, size);
+            }
+            if (r == 0)
+                return RESULT_TIMEOUT;
+            if (r < 0)
+                return RESULT_FAIL;
+            size -= r;
+            data += r;
+
+        }
+        return RESULT_OK;
 	}
 
     result_t YDlidarDriver::waitResponseHeader(lidar_ans_header * header, uint32_t timeout) {
@@ -244,7 +269,15 @@ namespace ydlidar{
 		if (returned_size==NULL) {
 			returned_size=(size_t *)&length;
 		}
-		return _serial->waitfordata(data_count, timeout, returned_size);
+		int ret = _serial->waitfordata(data_count, timeout, returned_size);
+        if(ret ==0){
+            return RESULT_OK;
+        }else if(ret ==-1){
+            return RESULT_TIMEOUT;
+        }else{
+            return RESULT_FAIL;
+
+        }
 	}
 
     result_t YDlidarDriver::getHealth(device_health & health, uint32_t timeout) {

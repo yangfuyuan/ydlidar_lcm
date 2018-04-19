@@ -275,7 +275,7 @@ struct serial_struct {
 #else
 		::cfmakeraw(tio);
 #endif
-		tio->c_cflag |= CLOCAL;
+		tio->c_cflag |= CLOCAL|CREAD;
 		tio->c_cc[VTIME] = 0;
 		tio->c_cc[VMIN] = 0;
 	}
@@ -613,8 +613,7 @@ struct serial_struct {
 				return false;
 			}
 			// Otherwise there was some error
-			throw(errno);
-			//return false;
+			return false;
 		}
 		// Timeout occurred
 		if (r == 0) {
@@ -629,7 +628,7 @@ struct serial_struct {
 	}
 
 
-	size_t Serial::SerialImpl::waitfordata(size_t data_count, uint32_t timeout, size_t * returned_size) {
+	int Serial::SerialImpl::waitfordata(size_t data_count, uint32_t timeout, size_t * returned_size) {
 		size_t length = 0;
 		if (returned_size==NULL){
 			returned_size=(size_t *)&length;
@@ -662,8 +661,6 @@ struct serial_struct {
 
 		while(is_open_){
 			int64_t timeout_remaining_ms = total_timeout.remaining();
-			// Only consider the timeout if it's not the first iteration of the loop
-			// otherwise a timeout of 0 won't be allowed through
 			if ((timeout_remaining_ms <= 0)) {
 				// Timed out
 				return -1;
@@ -756,9 +753,7 @@ struct serial_struct {
 					// Disconnected devices, at least on Linux, show the
 					// behavior that they are always ready to read immediately
 					// but reading returns nothing.
-					//continue;
-					throw ("device reports readiness to read but "
-                                                   "returned no data (device disconnected?)");
+					continue;
 				}
 				// Update bytes_read
 				bytes_read += static_cast<size_t> (bytes_read_now);
@@ -818,8 +813,7 @@ struct serial_struct {
 					continue;
 				}
 				// Otherwise there was some error
-				throw(errno);
-				//continue;
+				continue;
 			}
 			/** Timeout **/
 			if (r == 0) {
@@ -837,8 +831,7 @@ struct serial_struct {
 						// Disconnected devices, at least on Linux, show the
 						// behavior that they are always ready to write immediately
 						// but writing returns nothing.
-						 throw("device reports readiness to write but returned no data (device disconnected?)");
-						//continue;
+						continue;
 					}
 					// Update bytes_written
 					bytes_written += static_cast<size_t> (bytes_written_now);
@@ -856,8 +849,8 @@ struct serial_struct {
 					}
 				}
 				// This shouldn't happen, if r > 0 our fd has to be in the list!
-				//break;
-				throw("select reports ready to write, but our fd isn't in the list, this shouldn't happen!");
+				break;
+				//THROW (IOException, "select reports ready to write, but our fd isn't in the list, this shouldn't happen!");
 			}
 		}
 		return bytes_written;
@@ -1262,6 +1255,10 @@ struct serial_struct {
 		}else{
 			return 0 != (status & TIOCM_CD);
 		}
+	}
+
+	uint32_t Serial::SerialImpl::getByteTime(){
+		return byte_time_ns_;
 	}
 
 	int Serial::SerialImpl::readLock (){

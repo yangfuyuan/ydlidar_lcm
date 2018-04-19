@@ -41,10 +41,10 @@ int main(int argc, char * argv[])
     const int intensities =  atoi(argv[3]);
 
     signal(SIGINT, Stop);
-     signal(SIGTERM, Stop);
+    signal(SIGTERM, Stop);
 
   laser.setSerialPort(port);
-  laser.setSerialBaud(baud);
+  laser.setSerialBaudrate(baud);
   laser.setIntensities(intensities);
 
   laser.initialize();
@@ -56,7 +56,7 @@ int main(int argc, char * argv[])
 			fprintf(stderr,"Scan received: %u ranges\n",(unsigned int)scan.ranges.size());
 
 		}
-	usleep(100*1000);
+    usleep(50*1000);
 
 		
 	}

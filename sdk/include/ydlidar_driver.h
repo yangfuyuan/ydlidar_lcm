@@ -1,7 +1,7 @@
 #ifndef YDLIDAR_DRIVER_H
 #define YDLIDAR_DRIVER_H
 #include <stdlib.h>
-#include <atomic>     
+#include <atomic>
 #include "locker.h"
 #include "serial.h"
 #include "thread.h"
@@ -23,9 +23,6 @@
 #define LIDAR_CMD_GET_EAI                   0x55
 #define LIDAR_CMD_GET_DEVICE_INFO           0x90
 #define LIDAR_CMD_GET_DEVICE_HEALTH         0x92
-#define LIDAR_CMD_LOW_POWER        	    0x95
-#define LIDAR_CMD_ADD_POWER        	    0x96
-#define LIDAR_CMD_DIS_POWER        	    0x97
 #define LIDAR_ANS_TYPE_DEVINFO              0x4
 #define LIDAR_ANS_TYPE_DEVHEALTH            0x6
 #define LIDAR_CMD_SYNC_BYTE                 0xA5
@@ -51,6 +48,20 @@
 #define LIDAR_STATUS_OK                    0x0
 #define LIDAR_STATUS_WARNING               0x1
 #define LIDAR_STATUS_ERROR                 0x2
+
+#define LIDAR_CMD_ENABLE_LOW_POWER         0x01
+#define LIDAR_CMD_DISABLE_LOW_POWER        0x02
+#define LIDAR_CMD_STATE_MODEL_MOTOR        0x05
+#define LIDAR_CMD_ENABLE_CONST_FREQ        0x0E
+#define LIDAR_CMD_DISABLE_CONST_FREQ       0x0F
+
+#define LIDAR_CMD_SAVE_SET_EXPOSURE         0x94
+#define LIDAR_CMD_SET_LOW_EXPOSURE          0x95
+#define LIDAR_CMD_ADD_EXPOSURE       	    0x96
+#define LIDAR_CMD_DIS_EXPOSURE       	    0x97
+
+#define LIDAR_CMD_SET_HEART_BEAT        0xD9
+#define LIDAR_CMD_SET_SETPOINTSFORONERINGFLAG  0xae
 
 #define PackageSampleMaxLngth 0x100
 typedef enum {
@@ -125,9 +136,21 @@ struct scan_rotation {
 	uint8_t rotation;
 } __attribute__((packed))  ;
 
-struct scan_power {
-	uint8_t power;
-} __attribute__((packed)) ;
+struct scan_exposure {
+	uint8_t exposure;
+} __attribute__((packed))  ;
+
+struct scan_heart_beat {
+    uint8_t enable;
+} __attribute__((packed));
+
+struct scan_points {
+	uint8_t flag;
+} __attribute__((packed))  ;
+
+struct function_state {
+	uint8_t state;
+} __attribute__((packed))  ;
 
 struct cmd_packet {
 	uint8_t syncByte;
@@ -189,7 +212,6 @@ struct LaserScan {
 using namespace std;
 using namespace serial;
 
-
 namespace ydlidar{
 
 	class YDlidarDriver
@@ -210,15 +232,20 @@ namespace ydlidar{
 
 		result_t connect(const char * port_path, uint32_t baudrate);
 		void disconnect();
-		static const std::string getSDKVersion();
+		static std::string getSDKVersion();
+		const bool isscanning();
+        const bool isconnected();
 		void setIntensities(const bool isintensities);
+		const bool getHeartBeat();
+        void setHeartBeat(const bool enable);
+        result_t sendHeartBeat();
 		result_t getHealth(device_health & health, uint32_t timeout = DEFAULT_TIMEOUT);
 		result_t getDeviceInfo(device_info & info, uint32_t timeout = DEFAULT_TIMEOUT);
 		result_t startScan(bool force = false, uint32_t timeout = DEFAULT_TIMEOUT) ;
 		result_t stop();
 		result_t grabScanData(node_info * nodebuffer, size_t & count, uint32_t timeout = DEFAULT_TIMEOUT) ;
 		result_t ascendScanData(node_info * nodebuffer, size_t count);
-		static void simpleScanData(std::vector<scanDot>& scan_data , node_info *buffer, size_t count);
+		void simpleScanData(std::vector<scanDot> * scan_data , node_info *buffer, size_t count);
 
 		result_t reset(uint32_t timeout = DEFAULT_TIMEOUT);
 		result_t startMotor();
@@ -232,9 +259,19 @@ namespace ydlidar{
 		result_t setSamplingRate(sampling_rate & rate, uint32_t timeout = DEFAULT_TIMEOUT);
 		result_t setRotationPositive(scan_rotation & rotation, uint32_t timeout = DEFAULT_TIMEOUT);
 		result_t setRotationInversion(scan_rotation & rotation, uint32_t timeout = DEFAULT_TIMEOUT);
-		result_t setLowPower(scan_power& low_power, uint32_t timeout = DEFAULT_TIMEOUT);
-		result_t setScanPowerAdd(scan_power & power, uint32_t timeout = DEFAULT_TIMEOUT);
-		result_t setScanPowerDis(scan_power & power, uint32_t timeout = DEFAULT_TIMEOUT);
+
+		result_t enableLowerPower(function_state & state, uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t disableLowerPower(function_state & state, uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t getMotorState(function_state & state, uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t enableConstFreq(function_state & state, uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t disableConstFreq(function_state & state, uint32_t timeout = DEFAULT_TIMEOUT);
+
+		result_t setSaveLowExposure(scan_exposure& low_exposure, uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t setLowExposure(scan_exposure& low_exposure, uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t setLowExposureAdd(scan_exposure & exposure, uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t setLowExposurerDis(scan_exposure & exposure, uint32_t timeout = DEFAULT_TIMEOUT);
+        result_t setScanHeartbeat(scan_heart_beat& beat,uint32_t timeout = DEFAULT_TIMEOUT);
+		result_t setPointsForOneRingFlag(scan_points& points,uint32_t timeout = DEFAULT_TIMEOUT);
 
 	protected:
 		YDlidarDriver();
@@ -256,10 +293,12 @@ namespace ydlidar{
 
 	public:
 		std::atomic<bool>     isConnected;
-		std::atomic<bool>     isScanning;
+        std::atomic<bool>     isScanning;
+		std::atomic<bool>     isHeartbeat;
 
 		enum {
 			DEFAULT_TIMEOUT = 2000, 
+			DEFAULT_HEART_BEAT = 1000,
 			MAX_SCAN_NODES = 2048,
 		};
 		enum { 
@@ -279,13 +318,16 @@ namespace ydlidar{
 	private:
 		static int PackageSampleBytes;
 		static YDlidarDriver* _impl;
-		serial::Serial * _serial;
+		serial::Serial *_serial;
 		bool m_intensities;
 		int _sampling_rate;
+		int model;
 		uint32_t _baudrate;
 		bool isSupportMotorCtrl;
-
-		uint64_t m_us;
+		uint64_t m_ns;
+		uint64_t m_calc_ns;
+		uint32_t m_pointTime;
+		uint32_t trans_delay;
 
 	};
 }

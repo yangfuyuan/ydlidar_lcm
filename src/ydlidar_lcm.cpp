@@ -352,7 +352,7 @@ static void Stop(int signo) {
 
 int main(int argc, char * argv[]) {
 
-    std::string port = "/dev/ttyUSB0";
+    std::string port = "/dev/ydlidar";
     int baudrate = 115200;
     int samp_rate = 4;
     std::string frame_id = "laser_frame";

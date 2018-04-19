@@ -1,4 +1,4 @@
-YDLIDAR LCM PACKAGE V1.2.3
+YDLIDAR LCM PACKAGE V1.3.1
 =====================================================================
 
 LCM node and test application for YDLIDAR

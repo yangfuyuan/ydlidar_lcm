@@ -557,6 +557,13 @@ int main(int argc, char * argv[]) {
 
        }
 
+       if (_frequency < 7 && samp_rate>6) {
+           nodes_count = 1600;
+       } else if ( _frequency < 6&&samp_rate == 9) {
+           nodes_count = 1800;
+
+       }
+
 
     }
 
@@ -576,6 +583,7 @@ int main(int argc, char * argv[]) {
     double scan_duration;
     running = true;
     int max_nodes_count = nodes_count;
+    each_angle = 360.0/nodes_count;
 
 
     while (running) {

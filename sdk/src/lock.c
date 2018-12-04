@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/sysmacros.h>
 #include <fcntl.h>
 #include <string.h>
 #include <limits.h>
@@ -38,14 +39,18 @@ int lfs_lock( const char *filename, int pid )
     char *buffer = malloc(size);
     struct sockaddr_in addr;
 
-    if ( !( s = socket( AF_INET, SOCK_STREAM, 0 ) ) > 0 )
+    if ( !( s = socket( AF_INET, SOCK_STREAM, 0 ) ) > 0 ) {
+		free(buffer);
         return 1;
+	}
     addr.sin_family = AF_INET;
     addr.sin_port = htons( 50001 );
     addr.sin_addr.s_addr = inet_addr( "127.0.0.1" );
 
-    if ( !connect( s, ( struct sockaddr * ) &addr, sizeof( addr ) ) == 0 )
+    if ( !connect( s, ( struct sockaddr * ) &addr, sizeof( addr ) ) == 0 ) {
+		free(buffer);
         return 1;
+	}
     ret=recv( s, buffer, size, 0 );
     sprintf( buffer, "lock %s %i\n", filename, pid );
     /* printf( "%s", buffer ); */
@@ -60,6 +65,7 @@ int lfs_lock( const char *filename, int pid )
     close(s);
     /* printf("%s\n", buffer); */
     if( buffer[0] == '2' ) return 0;
+	free(buffer);
     return 1;
 }
 
@@ -79,15 +85,19 @@ int lfs_unlock( const char *filename, int pid )
     int size = 1024;
     char *buffer = malloc(size);
     struct sockaddr_in addr;
-
-    if ( !( s = socket( AF_INET, SOCK_STREAM, 0 ) ) > 0 )
+ 
+    if ( !( s = socket( AF_INET, SOCK_STREAM, 0 ) ) > 0 ) {
+		free(buffer);
         return 1;
+	}
     addr.sin_family = AF_INET;
     addr.sin_port = htons( 50001 );
     addr.sin_addr.s_addr = inet_addr( "127.0.0.1" );
 
-    if ( !connect( s, ( struct sockaddr * ) &addr, sizeof( addr ) ) == 0 )
+    if ( !connect( s, ( struct sockaddr * ) &addr, sizeof( addr ) ) == 0 ) {
+		free(buffer);
         return 1;
+	}
     sprintf( buffer, "unlock %s %i\n", filename, pid );
     /* printf( "%s", buffer ); */
     send( s, buffer, strlen(buffer), 0 );
@@ -100,6 +110,7 @@ int lfs_unlock( const char *filename, int pid )
     send( s, "quit\n", strlen( "quit\n" ), 0 );
     close(s);
     if( buffer[0] == '2' ) return 0;
+		free(buffer);
     return 1;
 }
 #endif /* LFS */
@@ -143,6 +154,7 @@ int lib_lock_dev_unlock( const char *filename, int pid )
 #ifdef LIBLOCKDEV
 int lib_lock_dev_lock( const char *filename, int pid )
 {
+    char message[80];
     printf("LOCKING %s\n", filename);
     if ( dev_testlock( filename ) )
     {
@@ -151,7 +163,7 @@ int lib_lock_dev_lock( const char *filename, int pid )
     }
     if ( dev_lock( filename ) )
     {
-        printf(
+        sprintf( message,
             "RXTX fhs_lock() Error: creating lock file for: %s: %s\n",
             filename, strerror(errno) );
        // report_error( message );
@@ -255,7 +267,7 @@ int fhs_lock( const char *filename, int pid )
 ----------------------------------------------------------*/
 int uucp_lock( const char *filename, int pid )
 {
-    char lockfilename[80], lockinfo[12], message[80];
+    char lockfilename[80], lockinfo[12];
     char name[80];
     int fd;
     struct stat buf;
@@ -287,7 +299,7 @@ int uucp_lock( const char *filename, int pid )
     sprintf( lockinfo, "%10d\n", (int) getpid() );
     if ( stat( lockfilename, &buf ) == 0 )
     {
-        printf("RXTX uucp_lock() %s is there\n",
+        printf( "RXTX uucp_lock() %s is there\n",
             lockfilename );
         return 1;
     }
@@ -414,7 +426,7 @@ void uucp_unlock( const char *filename, int openpid )
     }
     else
     {
-        printf("uucp_unlock: unlinking failed %s\n", file );
+        printf( "uucp_unlock: unlinking failed %s\n", file );
     }
 }
 
@@ -478,8 +490,8 @@ int check_lock_pid( const char *file, int openpid )
         I tried and seems to work.
         Villa Valerio <valerio.villa@siemens.com>
 ----------------------------------------------------------*/
-int check_group_uucp()
-{
+int check_group_uucp() {
+
 #ifndef USER_LOCK_DIRECTORY
     FILE *testLockFile ;
     char testLockFileDirName[] = LOCKDIR;
@@ -499,7 +511,7 @@ int check_group_uucp()
     if ( -1 == mkstemp(testLockAbsFileName) )
     {
         free(testLockAbsFileName);
-        printf("check_group_uucp(): mkstemp malformed string - \
+        printf("check_group_uucp(): mktemp malformed string - \
             should not happen");
 
         return 1;
@@ -520,14 +532,15 @@ int check_group_uucp()
 
 #endif /* USER_LOCK_DIRECTORY */
     return 0;
+}
 
 #ifdef USE_OLD_CHECK_GROUP_UUCP
-int check_group_uucp()
-{
+int check_group_uucp() {
 #ifndef USER_LOCK_DIRECTORY
     int group_count;
     struct passwd *user = getpwuid( geteuid() );
     struct stat buf;
+    char msg[80];
     gid_t list[ NGROUPS_MAX ];
 
     if( stat( LOCKDIR, &buf) )
@@ -556,7 +569,8 @@ int check_group_uucp()
         }
         if( buf.st_gid == list[ group_count ] )
             return 0;
-        printf("%i %i\n", buf.st_gid, list[ group_count ] );
+        sprintf( msg, "%i %i\n", buf.st_gid, list[ group_count ] );
+        printf( msg );
         printf( UUCP_ERROR );
         return 1;
     }
@@ -581,8 +595,9 @@ int check_group_uucp()
 */
 #endif /* USER_LOCK_DIRECTORY */
     return 0;
-#endif /* USE_OLD_CHECK_GROUP_UUCP */
 }
+#endif /* USE_OLD_CHECK_GROUP_UUCP */
+
 
 /*----------------------------------------------------------
  The following should be able to follow symbolic links.  I think the stat
@@ -750,7 +765,7 @@ int is_device_locked( const char *port_filename )
                 file );
             if( unlink( file ) != 0 )
             {
-                printf("RXTX Error:  Unable to \
+                printf( "RXTX Error:  Unable to \
                     remove stale lock file: %s\n",
                     file
                 );

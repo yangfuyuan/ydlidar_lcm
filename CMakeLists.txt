@@ -10,12 +10,15 @@ add_definitions(-std=c++11) # Use C++11
 set(LCM_INCLUDE_DIRS /usr/local/include)
 list(APPEND LCM_LIBRARIES  /usr/local/lib/liblcm.so)
 
-set(SDK_PATH "./sdk/")
+set(SDK_PATH "./sdk")
+set(INI_PATH "./simpleini")
+
 
 FILE(GLOB SDK_SRC 
   "${SDK_PATH}/src/impl/unix/*.cpp"
   "${SDK_PATH}/src/*.cpp"
   "${SDK_PATH}/src/*.c"
+  "${INI_PATH}/*.c"
 )
 
 
@@ -26,6 +29,7 @@ include_directories(
   ${PROJECT_SOURCE_DIR}/src
   ${PROJECT_SOURCE_DIR}/sdk/include
   ${PROJECT_SOURCE_DIR}/sdk/src
+  ${PROJECT_SOURCE_DIR}/simpleini
 )
 
 add_executable(ydlidar_lcm src/ydlidar_lcm.cpp  ${SDK_SRC})
